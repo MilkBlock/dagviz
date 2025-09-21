@@ -7,7 +7,6 @@ name = "dagviz"
 version = "0.0.5"
 dependencies = [
  "graphlib_rust",
- "ordered_hashmap",
 ]
 
 [[package]]

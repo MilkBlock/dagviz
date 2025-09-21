@@ -26,6 +26,3 @@ repository = "https://github.com/MilkBlock/dagviz"
 
 [dependencies.graphlib_rust]
 version = "0.0.2"
-
-[dependencies.ordered_hashmap]
-version = "0.0.3"
