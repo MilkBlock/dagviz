@@ -51,15 +51,40 @@ pub fn network_simplex(g: &mut Graph<GraphConfig, GraphNode, GraphEdge>) {
 
     let mut e;
     let mut f;
+    let mut iteration_count = 0;
+    let max_iterations = 1000; // 防止无限循环
+
     while {
         e = leave_edge(&t);
         e.is_some()
     } {
+        iteration_count += 1;
+        if iteration_count > max_iterations {
+            // println!(
+            //     "警告: network_simplex 算法在 {} 次迭代后仍未收敛，强制退出",
+            //     max_iterations
+            // );
+            break;
+        }
+
         f = enter_edge(&t, &g, &e.clone().unwrap());
         if f.is_some() {
             exchange_edges(&mut t, g, &e.clone().unwrap(), f.unwrap());
+        } else {
+            // println!(
+            //     "警告: 在迭代 {} 中找不到合适的边来替换，算法提前结束",
+            //     iteration_count
+            // );
+            // 不要break，让算法继续使用当前的树结构
         }
     }
+
+    // if iteration_count > 0 {
+    // println!(
+    //     "network_simplex 算法完成，共进行了 {} 次迭代",
+    //     iteration_count
+    // );
+    // }
 }
 
 /*
@@ -259,14 +284,28 @@ fn enter_edge(
     }
 
     let edge_objs = g.edges();
-    let candidates = edge_objs.iter().filter(|edge_obj| {
-        let v_node = t.node(&edge_obj.v).cloned().unwrap_or(GraphNode::default());
-        let w_node = t.node(&edge_obj.w).cloned().unwrap_or(GraphNode::default());
-        flip == is_descendant(&v_node, tail_label) && flip != is_descendant(&w_node, tail_label)
-    });
+    let candidates: Vec<_> = edge_objs
+        .iter()
+        .filter(|edge_obj| {
+            let v_node = t.node(&edge_obj.v).cloned().unwrap_or(GraphNode::default());
+            let w_node = t.node(&edge_obj.w).cloned().unwrap_or(GraphNode::default());
+            let v_is_desc = is_descendant(&v_node, tail_label);
+            let w_is_desc = is_descendant(&w_node, tail_label);
+            flip == v_is_desc && flip != w_is_desc
+        })
+        .collect();
+
+    // println!("寻找替换边: 移除边 {}-{}, 找到 {} 个候选边", v, w, candidates.len());
+
+    if candidates.is_empty() {
+        // println!("没有找到合适的候选边来替换 {}-{}", v, w);
+        return None;
+    }
 
     candidates
+        .iter()
         .min_by(|e1, e2| slack(g, e1).cmp(&slack(g, e2)))
+        .cloned()
         .cloned()
 }
 
@@ -336,8 +375,12 @@ fn is_tree_edge(tree: &Graph<GraphConfig, GraphNode, GraphEdge>, u: &String, v: 
  * assigned low and lim attributes in the tree.
  */
 fn is_descendant(v_label: &GraphNode, root_label: &GraphNode) -> bool {
-    let low = root_label.low.clone().unwrap_or(0);
-    let v_lim = v_label.lim.clone().unwrap_or(0);
+    let root_low = root_label.low.clone().unwrap_or(0);
     let root_lim = root_label.lim.clone().unwrap_or(0);
-    low <= v_lim && v_lim <= root_lim
+    let v_low = v_label.low.clone().unwrap_or(0);
+    let v_lim = v_label.lim.clone().unwrap_or(0);
+
+    // A node is a descendant if its low and lim values are within the root's range
+    // This is the standard way to check if a node is in a subtree
+    root_low <= v_low && v_lim <= root_lim
 }

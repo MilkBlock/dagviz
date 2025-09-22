@@ -304,12 +304,7 @@ pub fn add_border_node(
         node.order = Some(order.cloned().unwrap_or(0));
     }
 
-    return add_dummy_node(
-        graph,
-        "border".to_string(),
-        node,
-        prefix.clone().to_string(),
-    );
+    return add_dummy_node(graph, "border".to_string(), node, prefix.to_string());
 }
 
 pub fn max_rank(g: &Graph<GraphConfig, GraphNode, GraphEdge>) -> i32 {
